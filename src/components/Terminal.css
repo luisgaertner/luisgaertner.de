@@ -222,16 +222,19 @@
   }
 
   .terminal-body {
-    padding: 12px;
+    padding: 10px;
+    overflow-x: hidden;
   }
 
   .terminal-line {
-    font-size: 11px;
+    font-size: 10px;
+    white-space: pre-wrap;
+    word-break: break-all;
   }
 
   .terminal-input,
   .prompt {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .terminal-title {

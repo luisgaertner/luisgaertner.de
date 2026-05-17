@@ -131,6 +131,15 @@ function TerminalLine({ line, animated, onDone, onCommand }) {
     );
   }
 
+  // Mobile age line (single line, not segment)
+  if (line.isMobileAge && line.ageValue !== undefined) {
+    return (
+      <div className="terminal-line" style={{ whiteSpace: 'pre' }}>
+        <AgeSegment seg={line} textWidth={line.text.length} />
+      </div>
+    );
+  }
+
   return (
     <div className="terminal-line" style={{ whiteSpace: 'pre' }}>
       <span style={{ color }}>{displayText}</span>
@@ -147,18 +156,26 @@ export default function Terminal() {
   const [lang, setLang] = useState('de');
   const [cmdHistory, setCmdHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 600);
   const inputRef = useRef(null);
   const scrollRef = useRef(null);
   const terminalRef = useRef(null);
 
+  // Track viewport width
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 600);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   // Build commands map based on current language
   const getCommands = useCallback((l) => ({
-    about: getAbout(l),
+    about: getAbout(l, isMobile),
     projects: PROJECTS[l],
     skills: SKILLS[l],
     contact: CONTACT[l],
     help: HELP[l],
-  }), []);
+  }), [isMobile]);
 
   // Auto-scroll to bottom
   useEffect(() => {

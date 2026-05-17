@@ -159,14 +159,41 @@ export const ABOUT_TEMPLATE = {
 };
 
 // Build ABOUT with computed age
-export function getAbout(lang) {
+export function getAbout(lang, mobile = false) {
   const age = getAge();
   const ageLabel = lang === 'de' ? '  Alter:     ' : '  Age:       ';
   const ageSuffix = lang === 'de' ? ' Jahre' : ' years';
 
+  if (mobile) {
+    // Mobile: text first, then art below (no side-by-side)
+    const header = ABOUT_TEMPLATE[lang].slice(0, 4); // header + empty line
+    const infoLines = [
+      { text: '  Name:      Luis Gaertner', color: 'text' },
+      { text: ageLabel + age + ageSuffix, color: 'text', ageValue: String(age), ageLabel, ageSuffix, isMobileAge: true },
+      { text: lang === 'de' ? '  Standort:  Deutschland' : '  Location:  Germany', color: 'text' },
+      { text: lang === 'de' ? '  Fokus:     Full-Stack-Entwicklung' : '  Focus:     Full-Stack Development', color: 'text' },
+      { text: '' },
+      ...(lang === 'de' ? [
+        { text: '  Ich baue Dinge fürs Web und darüber hinaus.', color: 'dim' },
+        { text: '  Leidenschaft für sauberen Code, Open Source', color: 'dim' },
+        { text: '  und Tools, die das Leben einfacher machen.', color: 'dim' },
+      ] : [
+        { text: '  I build things for the web and beyond.', color: 'dim' },
+        { text: '  Passionate about clean code, open source,', color: 'dim' },
+        { text: '  and creating tools that make life easier.', color: 'dim' },
+      ]),
+      { text: '' },
+    ];
+    // Extract art lines from template (lines with segments)
+    const artLines = ABOUT_TEMPLATE[lang]
+      .filter(l => l.segments)
+      .map(l => ({ text: l.segments[1].text, color: 'dim' }));
+    return [...header, ...infoLines, ...artLines, { text: '' }];
+  }
+
+  // Desktop: side-by-side
   return ABOUT_TEMPLATE[lang].map(line => {
     if (line.age === lang && line.segments) {
-      // Replace the age placeholder segment with animated age field
       const textWidth = line.segments[0].text.length;
       return {
         segments: [
@@ -290,7 +317,6 @@ export const CONTACT = {
     { text: '' },
     { text: '  Email:    luisgaertner@icloud.com', color: 'text', link: 'mailto:luisgaertner@icloud.com' },
     { text: '  GitHub:   github.com/luisgaertner', color: 'text', link: 'https://github.com/luisgaertner' },
-    { text: '  LinkedIn: linkedin.com/in/luisgaertner', color: 'text', link: 'https://linkedin.com/in/luisgaertner' },
     { text: '' },
     { text: "  Schreib mir gerne — ich byte nicht.", color: 'dim' },
     { text: '' },
@@ -302,7 +328,6 @@ export const CONTACT = {
     { text: '' },
     { text: '  Email:    luisgaertner@icloud.com', color: 'text', link: 'mailto:luisgaertner@icloud.com' },
     { text: '  GitHub:   github.com/luisgaertner', color: 'text', link: 'https://github.com/luisgaertner' },
-    { text: '  LinkedIn: linkedin.com/in/luisgaertner', color: 'text', link: 'https://linkedin.com/in/luisgaertner' },
     { text: '' },
     { text: "  Feel free to reach out — I don't byte.", color: 'dim' },
     { text: '' },
