@@ -9,6 +9,7 @@ import {
   PROJECT_LINKS,
 } from '../data/content';
 import AsciiLogo from './AsciiLogo';
+import DoodleGame from './DoodleGame';
 import './Terminal.css';
 
 const COLOR_MAP = {
@@ -157,6 +158,7 @@ export default function Terminal() {
   const [cmdHistory, setCmdHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 600);
+  const [showGame, setShowGame] = useState(false);
   const inputRef = useRef(null);
   const scrollRef = useRef(null);
   const terminalRef = useRef(null);
@@ -232,6 +234,16 @@ export default function Terminal() {
 
     if (trimmed === 'clear') {
       setHistory([...WELCOME_MESSAGE[lang]]);
+      return;
+    }
+
+    if (trimmed === 'game') {
+      setHistory((prev) => [
+        ...prev,
+        promptLine,
+        { text: lang === 'de' ? '  🎮 Starte DoodleJump...' : '  🎮 Starting DoodleJump...', color: 'cyan' },
+      ]);
+      setTimeout(() => setShowGame(true), 400);
       return;
     }
 
@@ -337,7 +349,7 @@ export default function Terminal() {
       // Tab completion
       if (e.key === 'Tab') {
         e.preventDefault();
-        const allCmds = [...COMMAND_SUGGESTIONS, 'lang'];
+        const allCmds = [...COMMAND_SUGGESTIONS, 'game', 'lang'];
         const match = allCmds.find((c) =>
           c.startsWith(input.toLowerCase())
         );
@@ -354,6 +366,16 @@ export default function Terminal() {
     },
     [processCommand]
   );
+
+  const handleGameExit = useCallback(() => {
+    setShowGame(false);
+    setHistory((prev) => [
+      ...prev,
+      { text: lang === 'de' ? '  🎮 Zurück im Terminal.' : '  🎮 Back in terminal.', color: 'dim' },
+      { text: '' },
+    ]);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }, [lang]);
 
   return (
     <div className="terminal-window" ref={terminalRef}>
@@ -372,49 +394,55 @@ export default function Terminal() {
 
       {/* Terminal Body */}
       <div className="terminal-body" ref={scrollRef} onClick={handleTerminalClick}>
-        {/* Animated Logo Intro */}
-        {phase === 'logo' && <AsciiLogo onDone={handleLogoDone} />}
+        {showGame ? (
+          <DoodleGame onExit={handleGameExit} lang={lang} />
+        ) : (
+          <>
+            {/* Animated Logo Intro */}
+            {phase === 'logo' && <AsciiLogo onDone={handleLogoDone} />}
 
-        {/* Output Lines (shown after logo) */}
-        {phase !== 'logo' &&
-          history.map((line, i) => (
-            <TerminalLine key={i} line={line} onCommand={processCommand} />
-          ))}
+            {/* Output Lines (shown after logo) */}
+            {phase !== 'logo' &&
+              history.map((line, i) => (
+                <TerminalLine key={i} line={line} onCommand={processCommand} />
+              ))}
 
-        {/* Input Line */}
-        {phase === 'ready' && (
-          <div className="terminal-input-line">
-            <span className="prompt">visitor@luis ~ $&nbsp;</span>
-            <div className="input-wrapper">
-              <input
-                ref={inputRef}
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="terminal-input"
-                autoFocus
-                spellCheck={false}
-                autoComplete="off"
-                autoCapitalize="off"
-              />
-            </div>
-          </div>
-        )}
+            {/* Input Line */}
+            {phase === 'ready' && (
+              <div className="terminal-input-line">
+                <span className="prompt">visitor@luis ~ $&nbsp;</span>
+                <div className="input-wrapper">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="terminal-input"
+                    autoFocus
+                    spellCheck={false}
+                    autoComplete="off"
+                    autoCapitalize="off"
+                  />
+                </div>
+              </div>
+            )}
 
-        {/* Command Suggestions */}
-        {phase === 'ready' && (
-          <div className="command-suggestions">
-            {COMMAND_SUGGESTIONS.map((cmd) => (
-              <button
-                key={cmd}
-                className="suggestion-btn"
-                onClick={() => handleSuggestionClick(cmd)}
-              >
-                {cmd}
-              </button>
-            ))}
-          </div>
+            {/* Command Suggestions */}
+            {phase === 'ready' && (
+              <div className="command-suggestions">
+                {COMMAND_SUGGESTIONS.map((cmd) => (
+                  <button
+                    key={cmd}
+                    className="suggestion-btn"
+                    onClick={() => handleSuggestionClick(cmd)}
+                  >
+                    {cmd}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
