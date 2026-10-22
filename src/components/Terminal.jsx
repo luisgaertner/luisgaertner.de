@@ -7,6 +7,10 @@ import {
   CONTACT,
   HELP,
   PROJECT_LINKS,
+  COIN_FRAMES,
+  COIN_FRAME_MS,
+  getChartFrame,
+  CHART_INTRO_MS,
 } from '../data/content';
 import AsciiLogo from './AsciiLogo';
 import DoodleGame from './DoodleGame';
@@ -56,6 +60,59 @@ function AgeSegment({ seg, textWidth }) {
   }
 
   return <span style={{ color }}>{seg.text}</span>;
+}
+
+// One row of the Bitcoin coin. It spins once after the chart has built up and
+// then rests on its front side. All rows share the timing because they mount together.
+function CoinSegment({ row, color }) {
+  const [frame, setFrame] = useState(0);
+
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    let interval;
+    const delay = setTimeout(() => {
+      const start = Date.now();
+      interval = setInterval(() => {
+        const next = Math.floor((Date.now() - start) / COIN_FRAME_MS);
+        if (next >= COIN_FRAMES.length) {
+          setFrame(0);
+          clearInterval(interval);
+        } else {
+          setFrame(next);
+        }
+      }, COIN_FRAME_MS);
+    }, CHART_INTRO_MS);
+    return () => { clearTimeout(delay); clearInterval(interval); };
+  }, []);
+
+  return <span style={{ color }}>{COIN_FRAMES[frame][row]}</span>;
+}
+
+// One row of the candlestick chart. It builds up once when it appears and then
+// stays still. All rows share the timing because they mount together.
+const CHART_TICK_MS = 45;
+const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+function ChartSegment({ row, width }) {
+  const [segments, setSegments] = useState(() =>
+    prefersReducedMotion() ? getChartFrame(CHART_INTRO_MS)[row] : null
+  );
+
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    const start = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - start;
+      setSegments(getChartFrame(elapsed)[row]);
+      if (elapsed >= CHART_INTRO_MS) clearInterval(interval);
+    }, CHART_TICK_MS);
+    return () => clearInterval(interval);
+  }, [row]);
+
+  if (!segments) return <span>{' '.repeat(width)}</span>;
+  return segments.map((seg, i) => (
+    <span key={i} style={{ color: COLOR_MAP[seg.color] }}>{seg.text}</span>
+  ));
 }
 
 function TerminalLine({ line, animated, onDone, onCommand }) {
@@ -121,6 +178,12 @@ function TerminalLine({ line, animated, onDone, onCommand }) {
         {line.segments.map((seg, idx) => {
           if (seg.ageValue !== undefined) {
             return <AgeSegment key={idx} seg={seg} textWidth={seg.text.length} />;
+          }
+          if (seg.coinRow !== undefined) {
+            return <CoinSegment key={idx} row={seg.coinRow} color={COLOR_MAP[seg.color]} />;
+          }
+          if (seg.chartRow !== undefined) {
+            return <ChartSegment key={idx} row={seg.chartRow} width={seg.text.length} />;
           }
           return (
             <span key={idx} style={{ color: COLOR_MAP[seg.color] || COLOR_MAP.text }}>
@@ -290,7 +353,7 @@ export default function Terminal() {
         setHistory((prev) => [
           ...prev,
           promptLine,
-          { text: `  Opening project ${num}...`, color: 'dim' },
+          { text: lang === 'de' ? `  Öffne Projekt ${num}...` : `  Opening project ${num}...`, color: 'dim' },
           { text: '' },
         ]);
         return;
@@ -303,8 +366,8 @@ export default function Terminal() {
       setHistory((prev) => [...prev, promptLine, ...output]);
     } else {
       const errMsg = lang === 'de'
-        ? `  Befehl nicht gefunden: ${trimmed}. Tippe 'help' für verfügbare Befehle.`
-        : `  Command not found: ${trimmed}. Type 'help' for available commands.`;
+        ? `  Befehl nicht gefunden: ${trimmed}. Tippe 'help' — oder klick unten einen Button.`
+        : `  Command not found: ${trimmed}. Type 'help' — or click a button below.`;
       setHistory((prev) => [
         ...prev,
         promptLine,
